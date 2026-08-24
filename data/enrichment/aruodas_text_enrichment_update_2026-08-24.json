@@ -1,0 +1,62 @@
+[
+  {
+    "listing_id": "4-1495137",
+    "listing_scope": "room_rental",
+    "description_summary": "One room for rent in a three-room apartment near central Kaunas universities; the advertised 280 EUR price is for one room, not the whole 60 m2 apartment.",
+    "balcony": true,
+    "equipment_state": "fully_furnished",
+    "minimum_lease_months": 12,
+    "positive_signals": ["central_location", "balcony"],
+    "negative_signals": ["room_only", "shared_apartment", "minimum_12_month_lease"],
+    "source_method": "search_index",
+    "source_url": "https://m.aruodas.lt/4-1495137",
+    "source_checked_at": "2026-08-24"
+  },
+  {
+    "listing_id": "4-1495203",
+    "listing_scope": "whole_apartment",
+    "description_summary": "Newly fitted spacious two-level loft on Brastos Street in a newly renovated building with Lidl on the ground floor, two elevators, a shared rooftop terrace, 5.2 m ceilings, south-facing light and city views.",
+    "equipment_state": "newly_fitted",
+    "air_conditioning": true,
+    "dishwasher": true,
+    "underfloor_heating": true,
+    "high_ceilings": true,
+    "multi_level": true,
+    "positive_signals": ["loft", "very_high_ceilings", "air_conditioning", "dishwasher", "underfloor_heating", "two_elevators", "shared_rooftop_terrace", "south_facing", "views"],
+    "negative_signals": [],
+    "source_method": "search_index",
+    "source_url": "https://m.aruodas.lt/4-1495203",
+    "source_checked_at": "2026-08-24"
+  },
+  {
+    "listing_id": "4-1495293",
+    "listing_scope": "whole_apartment",
+    "description_summary": "Design-renovated furnished Old Town apartment about 50 m from Laisves Avenue and Vilniaus Street, with a separate entrance, autonomous gas heating, alarm and free parking.",
+    "equipment_state": "fully_furnished",
+    "parking": true,
+    "separate_entrance": true,
+    "positive_signals": ["old_town_core", "design_renovation", "separate_entrance", "free_parking", "autonomous_heating", "alarm"],
+    "negative_signals": [],
+    "source_method": "search_index",
+    "source_url": "https://m.aruodas.lt/4-1495293",
+    "source_checked_at": "2026-08-24"
+  },
+  {
+    "listing_id": "4-1338716",
+    "listing_scope": "whole_apartment",
+    "description_summary": "Fully furnished two-room apartment in the 2023 A++ Nemunaiciai project, with balcony, air conditioning, underfloor heating, dishwasher, recuperation and elevator; advertised for a one-year lease with extension possible.",
+    "equipment_state": "fully_furnished",
+    "balcony": true,
+    "air_conditioning": true,
+    "dishwasher": true,
+    "recuperation": true,
+    "underfloor_heating": true,
+    "minimum_lease_months": 12,
+    "pets_policy": "not_allowed",
+    "positive_signals": ["nemunaiciai", "a_plus_plus_building", "balcony", "air_conditioning", "dishwasher", "recuperation", "underfloor_heating", "elevator"],
+    "negative_signals": ["minimum_12_month_lease", "no_pets"],
+    "source_method": "search_index",
+    "source_url": "https://m.aruodas.lt/4-1338716",
+    "source_checked_at": "2026-08-24"
+  }
+]
