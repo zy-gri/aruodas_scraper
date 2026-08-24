@@ -58,5 +58,19 @@
     "source_method": "search_index",
     "source_url": "https://m.aruodas.lt/4-1338716",
     "source_checked_at": "2026-08-24"
+  },
+  {
+    "listing_id": "4-1495487",
+    "listing_scope": "whole_apartment",
+    "description_summary": "Furnished 47 m2 two-room apartment in a 2016 brick building on Spaustuvininku Street, described as a few minutes on foot from Zalgiris Arena and Laisves Avenue. The listing includes a parking space, closed courtyard, internet, recuperation system, code-locked entrance and security cameras.",
+    "building_type": "brick",
+    "equipment_state": "fully_furnished",
+    "parking": true,
+    "recuperation": true,
+    "positive_signals": ["central_location", "walkable_to_zalgiris_arena", "walkable_to_laisves_avenue", "parking", "closed_courtyard", "recuperation", "security_cameras", "internet"],
+    "negative_signals": [],
+    "source_method": "saved_detail_html",
+    "source_url": "https://www.aruodas.lt/4-1495487",
+    "source_checked_at": "2026-08-24"
   }
 ]
