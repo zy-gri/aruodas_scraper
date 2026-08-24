@@ -12,7 +12,7 @@ from src.location import classify_location, extract_aruodas_coordinates
 
 
 APPROXIMATE_MAP_RE = re.compile(
-    r"taškas\s*(?:<[^>]+>\s*)*netikslus",
+    r"taškas(?:\s+žemėlapyje)?\s*(?:<[^>]+>\s*)*netikslus",
     flags=re.IGNORECASE,
 )
 
@@ -22,13 +22,22 @@ def aruodas_marks_map_approximate(html: str) -> bool:
 
     soup = BeautifulSoup(html, "lxml")
 
-    sublabel = soup.select_one(
-        ".show-map-line-inner .sublabel, .map__label .sublabel"
-    )
+    # Aruodas uses more than one markup variant. Saved browser HTML can show:
+    #   Taškas <span>netikslus</span>
+    #   Taškas žemėlapyje netikslus
+    #   title="Taškas žemėlapyje netikslus"
+    # Check visible text and title attributes before falling back to raw HTML.
+    page_text = " ".join(soup.stripped_strings).lower()
 
-    if sublabel:
-        text = " ".join(sublabel.stripped_strings).lower()
-        if "netikslus" in text:
+    if (
+        "taškas žemėlapyje netikslus" in page_text
+        or "taškas netikslus" in page_text
+    ):
+        return True
+
+    for element in soup.select("[title]"):
+        title = str(element.get("title", "")).strip().lower()
+        if "taškas žemėlapyje netikslus" in title:
             return True
 
     return bool(APPROXIMATE_MAP_RE.search(html))
