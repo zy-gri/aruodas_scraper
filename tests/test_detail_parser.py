@@ -29,6 +29,34 @@ class DetailParserTests(unittest.TestCase):
         self.assertEqual(result["location_grade"], "A")
         self.assertEqual(result["location_gate"], "keep")
 
+    def test_saved_page_text_marks_map_approximate(self):
+        html = """
+        <div>Taškas žemėlapyje netikslus</div>
+        <a class="show-streetview"
+           href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=54.903446,23.878100&amp;pitch=10">
+          Street View
+        </a>
+        """
+
+        result = parse_detail_html(html)
+
+        self.assertTrue(result["aruodas_map_approximate"])
+        self.assertEqual(result["map_accuracy"], "approximate")
+
+    def test_saved_page_title_marks_map_approximate(self):
+        html = """
+        <span class="map_inaccurate-point" title="Taškas žemėlapyje netikslus"></span>
+        <a class="show-streetview"
+           href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=54.903446,23.878100&amp;pitch=10">
+          Street View
+        </a>
+        """
+
+        result = parse_detail_html(html)
+
+        self.assertTrue(result["aruodas_map_approximate"])
+        self.assertEqual(result["map_accuracy"], "approximate")
+
     def test_missing_coordinates_is_handled_cleanly(self):
         html = "<html><body><h1>Apartment</h1></body></html>"
 
