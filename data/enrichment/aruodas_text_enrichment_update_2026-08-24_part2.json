@@ -1,0 +1,28 @@
+[
+  {
+    "listing_id": "4-1495425",
+    "listing_scope": "whole_apartment",
+    "description_summary": "Fully furnished 2-room apartment in the 2021 A+ Piliamiestis project at Brastos g. 22B, on the 6th/top floor, with panoramic windows, open balcony facing the inner courtyard, air conditioning, underfloor heating, recuperation and a storage room.",
+    "equipment_state": "fully_furnished",
+    "balcony": true,
+    "air_conditioning": true,
+    "recuperation": true,
+    "underfloor_heating": true,
+    "positive_signals": [
+      "piliamiestis",
+      "top_floor",
+      "panoramic_windows",
+      "balcony",
+      "air_conditioning",
+      "underfloor_heating",
+      "recuperation",
+      "storage_room",
+      "inner_courtyard_orientation",
+      "a_plus_building"
+    ],
+    "negative_signals": [],
+    "source_method": "search_index",
+    "source_url": "https://m.aruodas.lt/4-1495425",
+    "source_checked_at": "2026-08-24"
+  }
+]
