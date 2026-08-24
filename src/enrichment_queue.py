@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.enrichment_io import DEFAULT_ENRICHMENT_DIR, load_enrichments
+
 
 DEFAULT_CANDIDATES = Path("data/parsed/aruodas_candidates.json")
-DEFAULT_ENRICHMENT = Path("data/enrichment/aruodas_text_enrichment_seed.json")
+DEFAULT_ENRICHMENT = DEFAULT_ENRICHMENT_DIR
 DEFAULT_OUTPUT = Path("data/parsed/aruodas_text_enrichment_queue.json")
 
 
@@ -62,18 +64,21 @@ def main() -> None:
         description="Create a small high-priority queue for Aruodas text enrichment."
     )
     parser.add_argument("--input", type=Path, default=DEFAULT_CANDIDATES)
-    parser.add_argument("--enrichment", type=Path, default=DEFAULT_ENRICHMENT)
+    parser.add_argument(
+        "--enrichment",
+        type=Path,
+        default=DEFAULT_ENRICHMENT,
+        help="One enrichment JSON file or a directory of enrichment sidecars.",
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--limit", type=int, default=30)
     args = parser.parse_args()
 
     if not args.input.exists():
         raise FileNotFoundError(f"Candidate dataset not found: {args.input}")
-    if not args.enrichment.exists():
-        raise FileNotFoundError(f"Enrichment sidecar not found: {args.enrichment}")
 
     candidates = json.loads(args.input.read_text(encoding="utf-8"))
-    enrichments = json.loads(args.enrichment.read_text(encoding="utf-8"))
+    enrichments = load_enrichments(args.enrichment)
 
     queue = build_enrichment_queue(candidates, enrichments, args.limit)
 
