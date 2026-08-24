@@ -10,20 +10,62 @@ DEFAULT_INPUT = Path("data/parsed/aruodas_baseline_location_enriched.json")
 FALLBACK_INPUT = Path("data/parsed/aruodas_baseline_2026-08-23.json")
 DEFAULT_OUTPUT = Path("data/parsed/aruodas_candidates.json")
 
-SCORER_VERSION = "aruodas-candidate-v1"
+SCORER_VERSION = "aruodas-candidate-v2"
+
+
+# ---------------------------------------------------------------------------
+# First-pass street proxies used only when exact Aruodas coordinates are not
+# available yet. These are STR-investigation heuristics, not official zones.
+# Exact coordinate classification always overrides these proxies.
+# ---------------------------------------------------------------------------
+
+PRIME_STREET_POINTS = {
+    "laisvės al.": 35.0,
+    "vilniaus g.": 35.0,
+    "rotušės a.": 35.0,
+    "maironio g.": 34.0,
+    "kęstučio g.": 34.0,
+    "k. donelaičio g.": 34.0,
+    "m. daukšos g.": 34.0,
+    "m. valančiaus g.": 34.0,
+    "s. dauganto g.": 33.0,
+    "gedimino g.": 33.0,
+}
+
+STRONG_STREET_POINTS = {
+    "karaliaus mindaugo pr.": 31.0,
+    "šv. gertrūdos g.": 31.0,
+    "kurpių g.": 32.0,
+    "v. putvinskio g.": 30.0,
+    "j. naugardo g.": 30.0,
+    "druskininkų g.": 30.0,
+    "trimito g.": 30.0,
+    "karo ligoninės g.": 29.0,
+}
+
+# These can be good, but the exact point matters enough that we do not award
+# prime location points until a detail page gives us coordinates.
+UNCERTAIN_STREET_POINTS = {
+    "brastos g.": 24.0,
+    "vytauto pr.": 24.0,
+    "parodos g.": 22.0,
+    "savanorių pr.": 18.0,
+    "zanavykų g.": 18.0,
+}
 
 
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
-def _location_component(listing: dict[str, Any]) -> tuple[float, str, str]:
-    """Return location points (0-35), source and explanation.
+def _normalise(value: Any) -> str:
+    return str(value or "").strip().casefold()
 
-    Exact micro-location enrichment wins whenever available. Otherwise use a
-    deliberately conservative district/street proxy until a saved detail page
-    gives us coordinates.
-    """
+
+def _location_component(
+    listing: dict[str, Any],
+) -> tuple[float, str, str, str]:
+    """Return location points (0-35), source, confidence and explanation."""
 
     exact_score = listing.get("location_score")
     zone = listing.get("location_zone")
@@ -33,30 +75,85 @@ def _location_component(listing: dict[str, Any]) -> tuple[float, str, str]:
         return (
             points,
             "coordinates",
+            "high",
             f"Exact micro-zone: {zone} ({exact_score}/100).",
         )
 
-    district = (listing.get("district") or "").strip().lower()
-    street = (listing.get("street") or "").strip().lower()
+    district = _normalise(listing.get("district"))
+    street = _normalise(listing.get("street"))
 
-    # Brastos is only a hint. It does NOT automatically mean Piliamiestis.
-    if "brastos" in street:
+    for street_name, points in PRIME_STREET_POINTS.items():
+        if street == street_name.casefold():
+            return (
+                points,
+                "street_proxy",
+                "medium",
+                "Prime central street proxy; coordinates should still confirm the exact micro-location.",
+            )
+
+    for street_name, points in STRONG_STREET_POINTS.items():
+        if street == street_name.casefold():
+            return (
+                points,
+                "street_proxy",
+                "medium",
+                "Strong central street proxy; coordinates are still preferred.",
+            )
+
+    for street_name, points in UNCERTAIN_STREET_POINTS.items():
+        if street == street_name.casefold():
+            if street_name == "brastos g.":
+                note = (
+                    "Brastos g. can be excellent if the exact point is Piliamiestis; "
+                    "coordinates are required before treating it as a premium zone."
+                )
+            elif street_name == "savanorių pr.":
+                note = (
+                    "Savanorių pr. varies strongly by exact position and is not treated "
+                    "as prime Centras without coordinates."
+                )
+            else:
+                note = "Potentially useful street, but exact position materially changes STR quality."
+
+            return points, "street_proxy", "low", note
+
+    # District-only fallbacks are deliberately conservative. V1 awarded 30/35
+    # to every Centras listing, which made the candidate pool far too broad.
+    if district == "senamiestis":
         return (
-            24.0,
-            "street_proxy",
-            "Brastos g. is potentially interesting, but coordinates are required to confirm Piliamiestis.",
+            27.0,
+            "district_proxy",
+            "low",
+            "Senamiestis district proxy only; exact street/coordinates are not yet known.",
+        )
+    if district == "centras":
+        return (
+            23.0,
+            "district_proxy",
+            "low",
+            "Centras district proxy only; this is not enough to assume prime STR location.",
+        )
+    if district in {"žaliakalnis", "zaliakalnis"}:
+        return (
+            15.0,
+            "district_proxy",
+            "low",
+            "Žaliakalnis is attractive mainly in its lower/central part; exact location matters.",
+        )
+    if district in {"vilijampolė", "vilijampole"}:
+        return (
+            7.0,
+            "district_proxy",
+            "low",
+            "Generic Vilijampolė is weak for our STR thesis unless coordinates prove Piliamiestis or another exceptional pocket.",
         )
 
-    if district == "senamiestis":
-        return 32.0, "district_proxy", "Senamiestis proxy; exact micro-location not yet known."
-    if district == "centras":
-        return 30.0, "district_proxy", "Centras proxy; exact micro-location not yet known."
-    if district in {"žaliakalnis", "zaliakalnis"}:
-        return 21.0, "district_proxy", "Žaliakalnis proxy; strong only in the central/lower part."
-    if district == "vilijampolė" or district == "vilijampole":
-        return 10.0, "district_proxy", "Generic Vilijampolė is weak for our STR thesis unless exact location proves otherwise."
-
-    return 8.0, "district_proxy", "Location is outside the current preferred core or not mapped yet."
+    return (
+        5.0,
+        "district_proxy",
+        "low",
+        "Location is outside the current preferred core or not mapped yet.",
+    )
 
 
 def _rent_component(rent_eur: Any) -> tuple[float, str]:
@@ -169,6 +266,37 @@ def _building_component(listing: dict[str, Any]) -> tuple[float, str]:
     return 8.0, f"Historic building ({year}); can be attractive but needs manual quality review."
 
 
+def _enrichment_priority(
+    *,
+    hard_reject: bool,
+    location_source: str,
+    location_confidence: str,
+    location_points: float,
+    score: float,
+) -> tuple[str, int]:
+    """Prioritise which unresolved listings deserve detail-page coordinates."""
+
+    if hard_reject:
+        return "SKIP", 0
+
+    if location_source == "coordinates":
+        return "DONE", 0
+
+    # Prime/strong streets with good overall economics should be enriched first.
+    if location_points >= 29.0 and score >= 74.0:
+        return "HIGH", 3
+
+    # Uncertain streets are specifically valuable to resolve when the rest of
+    # the listing is attractive (e.g. Brastos -> Piliamiestis or not).
+    if location_confidence == "low" and location_source == "street_proxy" and score >= 70.0:
+        return "HIGH", 3
+
+    if score >= 68.0:
+        return "MEDIUM", 2
+
+    return "LOW", 1
+
+
 def score_listing(listing: dict[str, Any]) -> dict[str, Any]:
     """Score one listing for *investigation priority*, not profitability."""
 
@@ -178,7 +306,12 @@ def score_listing(listing: dict[str, Any]) -> dict[str, Any]:
     if listing.get("reserved"):
         hard_reject_reasons.append("Listing is reserved.")
 
-    location_points, location_source, location_note = _location_component(listing)
+    (
+        location_points,
+        location_source,
+        location_confidence,
+        location_note,
+    ) = _location_component(listing)
     rent_points, rent_note = _rent_component(listing.get("rent_eur"))
     layout_points, layout_note = _layout_component(listing)
     building_points, building_note = _building_component(listing)
@@ -189,18 +322,26 @@ def score_listing(listing: dict[str, Any]) -> dict[str, Any]:
     if hard_reject_reasons:
         tier = "REJECT"
         priority = 0
-    elif score >= 75:
+    elif score >= 86:
         tier = "HIGH"
         priority = 4
-    elif score >= 60:
+    elif score >= 78:
         tier = "PROMISING"
         priority = 3
-    elif score >= 45:
+    elif score >= 68:
         tier = "MAYBE"
         priority = 2
     else:
         tier = "LOW"
         priority = 1
+
+    enrichment_label, enrichment_priority = _enrichment_priority(
+        hard_reject=bool(hard_reject_reasons),
+        location_source=location_source,
+        location_confidence=location_confidence,
+        location_points=location_points,
+        score=score,
+    )
 
     scored.update(
         {
@@ -210,6 +351,7 @@ def score_listing(listing: dict[str, Any]) -> dict[str, Any]:
             "candidate_hard_reject": bool(hard_reject_reasons),
             "candidate_reject_reasons": hard_reject_reasons,
             "candidate_location_source": location_source,
+            "candidate_location_confidence": location_confidence,
             "candidate_score_components": {
                 "location": round(location_points, 1),
                 "rent": round(rent_points, 1),
@@ -223,6 +365,8 @@ def score_listing(listing: dict[str, Any]) -> dict[str, Any]:
                 building_note,
             ],
             "needs_coordinate_enrichment": location_source != "coordinates",
+            "coordinate_enrichment_priority": enrichment_label,
+            "coordinate_enrichment_priority_value": enrichment_priority,
             "candidate_scorer_version": SCORER_VERSION,
         }
     )
@@ -274,9 +418,14 @@ def main() -> None:
     )
 
     tiers: dict[str, int] = {}
+    enrichment_counts: dict[str, int] = {}
+
     for listing in ranked:
         tier = listing["candidate_tier"]
         tiers[tier] = tiers.get(tier, 0) + 1
+
+        enrichment = listing["coordinate_enrichment_priority"]
+        enrichment_counts[enrichment] = enrichment_counts.get(enrichment, 0) + 1
 
     exact_location_count = sum(
         1 for listing in ranked if listing["candidate_location_source"] == "coordinates"
@@ -284,6 +433,7 @@ def main() -> None:
 
     print()
     print("=== ARUODAS CANDIDATE RANKING ===")
+    print(f"Scorer:                   {SCORER_VERSION}")
     print(f"Input:                    {input_path}")
     print(f"Listings:                 {len(ranked)}")
     print(f"Exact locations:          {exact_location_count}")
@@ -293,6 +443,8 @@ def main() -> None:
     print(f"MAYBE:                    {tiers.get('MAYBE', 0)}")
     print(f"LOW:                      {tiers.get('LOW', 0)}")
     print(f"REJECT:                   {tiers.get('REJECT', 0)}")
+    print(f"Enrich HIGH:              {enrichment_counts.get('HIGH', 0)}")
+    print(f"Enrich MEDIUM:            {enrichment_counts.get('MEDIUM', 0)}")
     print(f"Output:                   {args.output}")
 
     print()
@@ -311,7 +463,8 @@ def main() -> None:
             f"{listing.get('rooms') or '-'}r | "
             f"{listing.get('area_m2') or '-'} m² | "
             f"{listing.get('rent_eur') or '-'} € | "
-            f"loc={listing['candidate_location_source']}"
+            f"loc={listing['candidate_location_source']} | "
+            f"enrich={listing['coordinate_enrichment_priority']}"
         )
         shown += 1
         if shown >= args.top:
